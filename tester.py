@@ -6,10 +6,13 @@ UART_RX_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E" # RX characteristic UUID -
 def handle_rx(sender, data):
     text = data.decode().strip()
     try:
-        nodeNum, ax, ay, az = map(float, text.split(','))
-        print(f"Node {int(nodeNum)}: Accel: ({ax:.2f}, {ay:.2f}, {az:.2f}) m/s²")
+        #print(text)
+        print(text)
+        #nodeNum, ax, ay, az, gx, gy, gz = map(float, text.split(','))
+        #nodeNum, ax, ay, az = map(float, text.split(','))
+        #sprint(f"Node {int(nodeNum)}: Accel: ({ax:.2f}, {ay:.2f}, {az:.2f}) m/s² | Gyro {gx} {gy} {gz}")
     except Exception:
-        # Garbage data or parsing error; ignore
+        print("FAIL: ", text)
         pass
 
 async def connect_and_listen(address):

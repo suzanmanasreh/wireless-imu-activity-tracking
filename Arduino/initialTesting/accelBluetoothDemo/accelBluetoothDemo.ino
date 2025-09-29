@@ -65,24 +65,46 @@ void loop() {
   sensors_event_t mag;
 
   lsm6ds33.getEvent(&accel, &gyro, &temp);
-  //lis3mdl.getEvent(&mag);
+  lis3mdl.getEvent(&mag);
   /* Display the results (magnetic field is measured in uTesla) */
 
   // Format as ASCII string
-  char buf[128];
-  snprintf(buf, sizeof(buf), "%.2d,%.8f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
+  char buf0[128];
+  snprintf(buf0, sizeof(buf0), "%d,T,%d\n",
            NODENUMBER,
-           accel.timestamp,
+           millis()
+           );
+  
+  char buf1[128];
+  snprintf(buf1, sizeof(buf1), "%d,A,%.1f,%.1f,%.1f\n",
+           NODENUMBER,
            accel.acceleration.x,
            accel.acceleration.y,
-           accel.acceleration.z,
+           accel.acceleration.z
+           );
+
+  char buf2[128];
+  snprintf(buf2, sizeof(buf2), "%d,G,%.1f,%.1f,%.1f\n",
+           NODENUMBER,
            gyro.gyro.x,
            gyro.gyro.y,
-           gyro.gyro.z);
+           gyro.gyro.z
+           );
+
+  char buf3[128];
+  snprintf(buf3, sizeof(buf3), "%d,M,%.1f,%.1f,%.1f\n",
+           NODENUMBER,
+           mag.magnetic.x,
+           mag.magnetic.y,
+           mag.magnetic.z
+           );
 
   // Send via BLE UART
   if (Bluefruit.connected() && bleuart.notifyEnabled()) {
-    bleuart.print(buf);
+    bleuart.print(buf0);
+    bleuart.print(buf1);
+    bleuart.print(buf2);
+    bleuart.print(buf3);
   }
 
   if (brightness == 10) {
