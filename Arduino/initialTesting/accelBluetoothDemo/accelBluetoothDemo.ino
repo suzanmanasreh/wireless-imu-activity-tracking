@@ -64,39 +64,76 @@ void loop() {
   sensors_event_t temp;
   sensors_event_t mag;
 
+  uint32_t time = millis();
+
   lsm6ds33.getEvent(&accel, &gyro, &temp);
   lis3mdl.getEvent(&mag);
+  
   /* Display the results (magnetic field is measured in uTesla) */
 
   // Format as ASCII string
-  char buf0[128];
-  snprintf(buf0, sizeof(buf0), "%d,T,%d\n",
+  char buf0[32];
+  snprintf(buf0, sizeof(buf0), "%d,AX,%d,%.1f\n",
            NODENUMBER,
-           millis()
+           time,
+          accel.acceleration.x
            );
   
-  char buf1[128];
-  snprintf(buf1, sizeof(buf1), "%d,A,%.1f,%.1f,%.1f\n",
+  char buf1[32];
+  snprintf(buf1, sizeof(buf1), "%d,AY,%d,%.1f\n",
            NODENUMBER,
-           accel.acceleration.x,
-           accel.acceleration.y,
-           accel.acceleration.z
+           time,
+          accel.acceleration.y
            );
 
-  char buf2[128];
-  snprintf(buf2, sizeof(buf2), "%d,G,%.1f,%.1f,%.1f\n",
+    char buf2[32];
+  snprintf(buf2, sizeof(buf2), "%d,AZ,%d,%.1f\n",
            NODENUMBER,
-           gyro.gyro.x,
-           gyro.gyro.y,
-           gyro.gyro.z
+           time,
+          accel.acceleration.z
            );
 
-  char buf3[128];
-  snprintf(buf3, sizeof(buf3), "%d,M,%.1f,%.1f,%.1f\n",
+    char buf3[32];
+  snprintf(buf3, sizeof(buf3), "%d,MX,%d,%.1f\n",
            NODENUMBER,
-           mag.magnetic.x,
-           mag.magnetic.y,
-           mag.magnetic.z
+           time,
+          mag.magnetic.x
+           );
+
+    char buf4[32];
+  snprintf(buf4, sizeof(buf4), "%d,MY,%d,%.1f\n",
+           NODENUMBER,
+           time,
+          mag.magnetic.y
+           );
+
+      char buf5[32];
+  snprintf(buf5, sizeof(buf5), "%d,MZ,%d,%.1f\n",
+           NODENUMBER,
+           time,
+          mag.magnetic.z
+           );
+
+          char buf6[32];
+  snprintf(buf6, sizeof(buf6), "%d,GX,%d,%.1f\n",
+           NODENUMBER,
+           time,
+          gyro.gyro.x
+           );
+
+          char buf7[64];
+  snprintf(buf7, sizeof(buf7), "%d,GY,%d,%.1f\n",
+           NODENUMBER,
+           time,
+          gyro.gyro.y
+           );
+
+
+              char buf8[32];
+  snprintf(buf8, sizeof(buf8), "%d,GZ,%d,%.1f\n",
+           NODENUMBER,
+           time,
+          gyro.gyro.z
            );
 
   // Send via BLE UART
@@ -105,6 +142,11 @@ void loop() {
     bleuart.print(buf1);
     bleuart.print(buf2);
     bleuart.print(buf3);
+    bleuart.print(buf4);
+    bleuart.print(buf5);
+    bleuart.print(buf6);
+    bleuart.print(buf7);
+    bleuart.print(buf8);
   }
 
   if (brightness == 10) {

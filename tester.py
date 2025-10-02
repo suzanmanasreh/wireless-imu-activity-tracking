@@ -4,7 +4,11 @@ from bleak import BleakClient, BleakScanner
 UART_RX_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E" # RX characteristic UUID - shouldn't need to change?
 
 def handle_rx(sender, data):
-    text = data.decode().strip()
+    try:
+        text = data.decode()
+        text = text.strip()
+    except Exception:
+        print(f"text:  {text} could not be decoded")
     try:
         #print(text)
         print(text)
@@ -32,7 +36,7 @@ async def main():
     print("Scanning for devices...")
     connectedDevices = []
     tasks = []
-    expectedNumberOfDevices = 2
+    expectedNumberOfDevices = 1
     
     while expectedNumberOfDevices > len(connectedDevices):
         devices = await BleakScanner.discover()
