@@ -5,43 +5,43 @@
 #include <Adafruit_NeoPixel.h>
 
 #define NEOPIXELPIN 8
-#define NODENUMBER 1
+#define NODENUMBER 2
 
 BLEUart bleuart;
 Adafruit_LSM6DS33 lsm6ds33;
 Adafruit_LIS3MDL lis3mdl;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, NEOPIXELPIN, NEO_GRB + NEO_KHZ800);
-int brightness = 10;
 
 
 void setup() {
   Serial.begin(115200);
-  //while (!Serial);
 
+  // Set up the fancy LED color to tell nodes apart visually
   if (NODENUMBER == 1) {
-    strip.setPixelColor(0, 0, 0, 255);
+    strip.setPixelColor(0, 0, 255, 255); // Cyan
   } else {
-    strip.setPixelColor(0, 255, 0, 0);
+    strip.setPixelColor(0, 255, 255, 0); // Orange/Yellow?
   }
-  strip.setBrightness(brightness);
+  strip.setBrightness(10);
   strip.show();
 
-  // Initialize IMU
+  // Initialize IMU to get Accel/Gyro readings
   if (!lsm6ds33.begin_I2C()) {
     Serial.println("Failed to find LSM6DS33!");
     while (1);
   }
 
+  // Initialize the device needed for magnetometer measurements
   if (! lis3mdl.begin_I2C()) {          // hardware I2C mode, can pass in address & alt Wire
-  //if (! lis3mdl.begin_SPI(LIS3MDL_CS)) {  // hardware SPI mode
-  //if (! lis3mdl.begin_SPI(LIS3MDL_CS, LIS3MDL_CLK, LIS3MDL_MISO, LIS3MDL_MOSI)) { // soft SPI
     Serial.println("Failed to find LIS3MDL chip");
     while (1) { delay(10); }
   }
 
-  // Set IMU range to a higher level
+  // Set IMU to detect acclerometer changes up to +/- 8G's
   lsm6ds33.setAccelRange(LSM6DS_ACCEL_RANGE_8_G);
-  lsm6ds33.setAccelDataRate(LSM6DS_RATE_208_HZ);
+
+  // How quickly we update the accelerometer. 50ish is fine for us.
+  lsm6ds33.setAccelDataRate(LSM6DS_RATE_52_HZ);
 
   // Initialize BLE
   Bluefruit.begin(1, 0);
@@ -64,99 +64,38 @@ void loop() {
   sensors_event_t temp;
   sensors_event_t mag;
 
+  // Fetch the current time for timestamp purposes
   uint32_t time = millis();
 
+  // Get the accel/gyro/mag measurements from the sensor
   lsm6ds33.getEvent(&accel, &gyro, &temp);
   lis3mdl.getEvent(&mag);
   
-  /* Display the results (magnetic field is measured in uTesla) */
+  // Organize values into an array of floats/chars for easy loop access
+  float values[9] = {
+    accel.acceleration.x, accel.acceleration.y, accel.acceleration.z,
+    gyro.gyro.x, gyro.gyro.y, gyro.gyro.z,
+    mag.magnetic.x, mag.magnetic.y, mag.magnetic.z
+  };
 
-  // Format as ASCII string
-  char buf0[32];
-  snprintf(buf0, sizeof(buf0), "%d,AX,%d,%.1f\n",
-           NODENUMBER,
-           time,
-          accel.acceleration.x
-           );
-  
-  char buf1[32];
-  snprintf(buf1, sizeof(buf1), "%d,AY,%d,%.1f\n",
-           NODENUMBER,
-           time,
-          accel.acceleration.y
-           );
+  char types[9][3] = {
+    "AX", "AY", "AZ", "GX", "GY", "GZ", "MX", "MY", "MZ"
+  };
 
-    char buf2[32];
-  snprintf(buf2, sizeof(buf2), "%d,AZ,%d,%.1f\n",
-           NODENUMBER,
-           time,
-          accel.acceleration.z
-           );
-
-    char buf3[32];
-  snprintf(buf3, sizeof(buf3), "%d,MX,%d,%.1f\n",
-           NODENUMBER,
-           time,
-          mag.magnetic.x
-           );
-
-    char buf4[32];
-  snprintf(buf4, sizeof(buf4), "%d,MY,%d,%.1f\n",
-           NODENUMBER,
-           time,
-          mag.magnetic.y
-           );
-
-      char buf5[32];
-  snprintf(buf5, sizeof(buf5), "%d,MZ,%d,%.1f\n",
-           NODENUMBER,
-           time,
-          mag.magnetic.z
-           );
-
-          char buf6[32];
-  snprintf(buf6, sizeof(buf6), "%d,GX,%d,%.1f\n",
-           NODENUMBER,
-           time,
-          gyro.gyro.x
-           );
-
-          char buf7[64];
-  snprintf(buf7, sizeof(buf7), "%d,GY,%d,%.1f\n",
-           NODENUMBER,
-           time,
-          gyro.gyro.y
-           );
-
-
-              char buf8[32];
-  snprintf(buf8, sizeof(buf8), "%d,GZ,%d,%.1f\n",
-           NODENUMBER,
-           time,
-          gyro.gyro.z
-           );
+  // Declare our buffer
+  char buf[20];
 
   // Send via BLE UART
+  // NOTE: REDUCED MEASUREMENT ACCURACY BEYOND 1M MILLISECS ELAPSED
   if (Bluefruit.connected() && bleuart.notifyEnabled()) {
-    bleuart.print(buf0);
-    bleuart.print(buf1);
-    bleuart.print(buf2);
-    bleuart.print(buf3);
-    bleuart.print(buf4);
-    bleuart.print(buf5);
-    bleuart.print(buf6);
-    bleuart.print(buf7);
-    bleuart.print(buf8);
+    for (int i = 0; i < 9; i++) {
+      snprintf(buf, 20, "%d,%s,%d,%.3f",
+        NODENUMBER,
+        types[i],
+        time,
+        values[i]
+      );
+      bleuart.print(buf);
+    }
   }
-
-  if (brightness == 10) {
-    strip.setBrightness(5);
-    brightness = 5;
-  } else {
-    strip.setBrightness(10);
-    brightness = 10;
-  }
-  strip.show();
-
-  delay(5); // trying to match 208 Hz update
 }
