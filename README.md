@@ -14,3 +14,5 @@ Our data is currently collected with the IMU attached to the center of the barbe
 ## Initial Data Analysis
 
 ### Bicep Curl
+
+![alt text](image.png)
