@@ -109,17 +109,6 @@ def create_df(filename):
         # plt.show()
 
 
-def segmentation(df, window_size = 15, step_size = 7, label=None):
-    segments = []
-    labels = []
-    for start in range(0, len(df) - window_size, step_size):
-        end = start + window_size
-        window = df.iloc[start:end][['accel_x', 'accel_y', 'accel_z',
-                                     'gyro_x', 'gyro_y', 'gyro_z']].values
-        segments.append(window)
-        labels.append(label)
-    return segments, labels
-
 X_train = []
 X_test = []
 
