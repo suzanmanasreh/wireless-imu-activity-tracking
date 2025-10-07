@@ -6,7 +6,7 @@ from tensorflow.keras import Sequential, Input
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D, Flatten, GlobalAveragePooling1D
 from tensorflow.keras.utils import to_categorical
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 
 
@@ -19,6 +19,7 @@ def add_data(hmap, data, ts):
 training_files = ["../data/bicep_curl/suzan_bicep_set1.log", "../data/bicep_curl/jake_bicep_set1.log", "../data/bicep_curl/udai_bicep_set1.log", "../data/shoulder_press/suzan_shoulder_set1.log", "../data/shoulder_press/jake_shoulder_set1.log", "../data/shoulder_press/udai_shoulder_set1.log", "../data/row/suzan_row_set1.log", "../data/row/jake_row_set1.log", "../data/row/udai_row_set1.log", "../data/rdl/suzan_rdl_set1.log", "../data/rdl/jake_rdl_set1.log", "../data/rdl/jessica_rdl_set1.log", "../data/squat/suzan_squat_set1.log", "../data/squat/jake_squat_set1.log", "../data/squat/udai_squat_set1.log"]
 test_files = ["../data/bicep_curl/suzan_bicep_set2.log", "../data/bicep_curl/jake_bicep_set2.log", "../data/bicep_curl/udai_bicep_set2.log", "../data/shoulder_press/suzan_shoulder_set2.log", "../data/shoulder_press/jake_shoulder_set2.log", "../data/shoulder_press/udai_shoulder_set2.log", "../data/row/suzan_row_set2.log", "../data/row/jake_row_set2.log", "../data/row/udai_row_set2.log", "../data/rdl/suzan_rdl_set2.log", "../data/rdl/jake_rdl_set2.log", "../data/rdl/jessica_rdl_set2.log", "../data/squat/suzan_squat_set2.log", "../data/squat/jake_squat_set2.log", "../data/squat/udai_squat_set2.log"]
 labels = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4]
+class_names = ["bicep_curl", "shoulder_press", "row", "rdl", "squat"]
 # 0 = bicep curl, 1 = shoulder press, 2 = row, 3 = rdl, 4 = squat
 # labels = ["bicep_curl", "bicep_curl", "bicep_curl", "shoulder_press", "shoulder_press", "shoulder_press", "row", "row", "row", "rdl", "rdl", "rdl", "squat", "squat", "squat"]
 
@@ -147,7 +148,7 @@ model = Sequential([
     LSTM(128, return_sequences=True),
     Dropout(0.3),
     LSTM(64),
-    Dense(64, activation='relu'),
+    Dense(64, activation='sigmoid'),
     Dense(num_classes, activation='softmax')
 ])
 
@@ -166,6 +167,15 @@ history = model.fit(
 y_pred = np.argmax(model.predict(X_test), axis=1)
 y_true = np.argmax(y_test, axis=1)
 
+cm = confusion_matrix(y_true, y_pred)
+
+print(f"y_pred: {y_pred}")
+print(f"y_true: {y_true}")
+
 print("Accuracy:", accuracy_score(y_true, y_pred))
 print("Classification Report:\n", classification_report(y_true, y_pred))
 
+print(cm)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names) # class_names are optional
+disp.plot()
+plt.show()
