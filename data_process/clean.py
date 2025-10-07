@@ -2,13 +2,12 @@ import numpy as np
 import pandas as pd
 import sys
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D, Flatten
+from tensorflow.keras import Sequential, Input
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D, Flatten, GlobalAveragePooling1D
 from tensorflow.keras.utils import to_categorical
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, accuracy_score
 import matplotlib.pyplot as plt
-
 
 
 def add_data(hmap, data, ts):
@@ -19,7 +18,9 @@ def add_data(hmap, data, ts):
 
 training_files = ["../data/bicep_curl/suzan_bicep_set1.log", "../data/bicep_curl/jake_bicep_set1.log", "../data/bicep_curl/udai_bicep_set1.log", "../data/shoulder_press/suzan_shoulder_set1.log", "../data/shoulder_press/jake_shoulder_set1.log", "../data/shoulder_press/udai_shoulder_set1.log", "../data/row/suzan_row_set1.log", "../data/row/jake_row_set1.log", "../data/row/udai_row_set1.log", "../data/rdl/suzan_rdl_set1.log", "../data/rdl/jake_rdl_set1.log", "../data/rdl/jessica_rdl_set1.log", "../data/squat/suzan_squat_set1.log", "../data/squat/jake_squat_set1.log", "../data/squat/udai_squat_set1.log"]
 test_files = ["../data/bicep_curl/suzan_bicep_set2.log", "../data/bicep_curl/jake_bicep_set2.log", "../data/bicep_curl/udai_bicep_set2.log", "../data/shoulder_press/suzan_shoulder_set2.log", "../data/shoulder_press/jake_shoulder_set2.log", "../data/shoulder_press/udai_shoulder_set2.log", "../data/row/suzan_row_set2.log", "../data/row/jake_row_set2.log", "../data/row/udai_row_set2.log", "../data/rdl/suzan_rdl_set2.log", "../data/rdl/jake_rdl_set2.log", "../data/rdl/jessica_rdl_set2.log", "../data/squat/suzan_squat_set2.log", "../data/squat/jake_squat_set2.log", "../data/squat/udai_squat_set2.log"]
-labels = ["bicep_curl", "bicep_curl", "bicep_curl", "shoulder_press", "shoulder_press", "shoulder_press", "row", "row", "row", "rdl", "rdl", "rdl", "squat", "squat", "squat"]
+labels = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4]
+# 0 = bicep curl, 1 = shoulder press, 2 = row, 3 = rdl, 4 = squat
+# labels = ["bicep_curl", "bicep_curl", "bicep_curl", "shoulder_press", "shoulder_press", "shoulder_press", "row", "row", "row", "rdl", "rdl", "rdl", "squat", "squat", "squat"]
 X_train = []
 X_test = []
 
@@ -44,19 +45,18 @@ def create_df(filename, dfs):
                 idx = None
                 if timestamp not in timestamps:
                     timestamps.append(timestamp)
-                match data_type:
-                    case "AX":
-                        add_data(accel_x, data, timestamp)
-                    case "AY":
-                        add_data(accel_y, data, timestamp)
-                    case "AZ":
-                        add_data(accel_z, data, timestamp)
-                    case "GX":
-                        add_data(gyro_x, data, timestamp)
-                    case "GY":
-                        add_data(gyro_y, data, timestamp)
-                    case "GZ": 
-                        add_data(gyro_z, data, timestamp)
+                if (data_type == "AX"):
+                    add_data(accel_x, data, timestamp)
+                elif (data_type == "AY"):
+                    add_data(accel_y, data, timestamp)
+                elif (data_type == "AZ"):
+                    add_data(accel_z, data, timestamp)
+                elif (data_type == "GX"):
+                    add_data(gyro_x, data, timestamp)
+                elif (data_type == "GY"):
+                    add_data(gyro_y, data, timestamp)
+                elif (data_type == "GZ"):
+                    add_data(gyro_z, data, timestamp)
         
         for ts in timestamps:
             if ts not in accel_x:
@@ -97,7 +97,6 @@ def create_df(filename, dfs):
 
         df = pd.DataFrame({'timestamp': timestamps, 'accel_x': accel_x.values(), 'accel_y': accel_y.values(), 'accel_z': accel_z.values(), 'gyro_x': gyro_x.values(), 'gyro_y': gyro_y.values(), 'gyro_z': gyro_z.values()})
         # df.to_csv('raw_df.csv')
-        # df = df.set_index("timestamp")
         cleaned_df = df.interpolate(method="linear", limit_direction="both")
         name = "../csvs/" + filename.split("/")[-1].split(".")[0] + "_df.csv"
         if len(sys.argv) > 1 and sys.argv[1] == "write":
@@ -112,7 +111,7 @@ def create_df(filename, dfs):
         # plt.show()
 
 
-def segmentation(df, window_size = 5, step_size = 2, label=None):
+def segmentation(df, window_size = 15, step_size = 7, label=None):
     segments = []
     labels = []
     for start in range(0, len(df) - window_size, step_size):
@@ -130,10 +129,77 @@ y_test_segments = []
 
 for filename, label in zip(training_files, labels):
     df = create_df(filename, [])
-    # segments, labels = segmentation(df, label=label)
-    # print(segments)
-    # print(labels)
+    segments, segment_labels = segmentation(df, label=label)
+    print(f"segments: {segments}")
+    print(f"segment_labels: {segment_labels}")
+    X_train_segments.extend(segments)
+    y_train_segments.extend(segment_labels)
     # break
 
 for filename in test_files:
     df = create_df(filename, [])
+    segments, segment_labels = segmentation(df, label=label)
+    X_test_segments.extend(segments)
+    y_test_segments.extend(segment_labels)
+
+X_train = np.array(X_train_segments)
+X_test = np.array(X_test_segments)
+print(f"X_train.shape(): {X_train.shape}")
+print(f"X_test.shape(): {X_test.shape}")
+
+y_train = np.array(y_train_segments)
+y_test = np.array(y_test_segments)
+
+num_classes = len(np.unique(y_train))
+print(f"y_train before: {y_train}")
+y_train = to_categorical(y_train, num_classes)
+print(f"y_train after: {y_train}")
+y_test = to_categorical(y_test, num_classes)
+
+print(f"y_train.shape(): {y_train.shape}")
+print(f"y_test.shape(): {y_test.shape}")
+
+print(f"num_classes: {num_classes}")
+
+num_classes = 5
+
+# model = Sequential([
+#     Input(shape=(X_train.shape[1], X_train.shape[2])),
+#     LSTM(64, return_sequences=True),
+#     Dropout(0.3),
+#     LSTM(64),
+#     Dense(64, activation='relu'),
+#     Dense(num_classes, activation='softmax')
+# ])
+
+model = Sequential([
+    Input(shape=(X_train.shape[1], X_train.shape[2])),
+    Conv1D(64, 3, activation='relu', padding='same'),
+    Dropout(0.2),
+    Conv1D(128, 3, activation='relu', padding='same'),
+    GlobalAveragePooling1D(),
+    Dense(64, activation='relu'),
+    Dense(num_classes, activation='softmax')
+])
+
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+model.summary()
+
+history = model.fit(
+    X_train, y_train,
+    validation_data=(X_test, y_test),
+    epochs=50,
+    batch_size=16,
+    verbose=1
+)
+
+y_pred = np.argmax(model.predict(X_test), axis=1)
+y_true = np.argmax(y_test, axis=1)
+
+print("Accuracy:", accuracy_score(y_true, y_pred))
+print("Classification Report:\n", classification_report(y_true, y_pred))
+
+# plt.plot(history.history['accuracy'], label='train acc')
+# plt.plot(history.history['val_accuracy'], label='val acc')
+# plt.legend()
+# plt.show()
