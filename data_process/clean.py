@@ -21,10 +21,8 @@ test_files = ["../data/bicep_curl/suzan_bicep_set2.log", "../data/bicep_curl/jak
 labels = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4]
 # 0 = bicep curl, 1 = shoulder press, 2 = row, 3 = rdl, 4 = squat
 # labels = ["bicep_curl", "bicep_curl", "bicep_curl", "shoulder_press", "shoulder_press", "shoulder_press", "row", "row", "row", "rdl", "rdl", "rdl", "squat", "squat", "squat"]
-X_train = []
-X_test = []
 
-def create_df(filename, dfs):
+def create_df(filename):
     print(filename)
     with open(filename, 'r') as file:
         timestamps = []
@@ -102,7 +100,7 @@ def create_df(filename, dfs):
         if len(sys.argv) > 1 and sys.argv[1] == "write":
             cleaned_df.to_csv(name, index=False)
         print(cleaned_df.head())
-        dfs.append(cleaned_df)
+        # dfs.append(cleaned_df)
         return cleaned_df
         # cleaned_df.plot(x="timestamp")
         # plt.title("Bicep Curls")
@@ -122,65 +120,48 @@ def segmentation(df, window_size = 15, step_size = 7, label=None):
         labels.append(label)
     return segments, labels
 
-X_train_segments = []
-y_train_segments = []
-X_test_segments = []
-y_test_segments = []
+X_train = []
+X_test = []
 
-for filename, label in zip(training_files, labels):
-    df = create_df(filename, [])
-    segments, segment_labels = segmentation(df, label=label)
-    print(f"segments: {segments}")
-    print(f"segment_labels: {segment_labels}")
-    X_train_segments.extend(segments)
-    y_train_segments.extend(segment_labels)
-    # break
+for f in training_files:
+    X_train.append(create_df(f))
 
-for filename in test_files:
-    df = create_df(filename, [])
-    segments, segment_labels = segmentation(df, label=label)
-    X_test_segments.extend(segments)
-    y_test_segments.extend(segment_labels)
+for f in test_files:
+    X_test.append(create_df(f))
 
-X_train = np.array(X_train_segments)
-X_test = np.array(X_test_segments)
-print(f"X_train.shape(): {X_train.shape}")
-print(f"X_test.shape(): {X_test.shape}")
+y_train = np.array(labels)
+y_test = np.array(labels)
 
-y_train = np.array(y_train_segments)
-y_test = np.array(y_test_segments)
+max_len = 100
 
-num_classes = len(np.unique(y_train))
-print(f"y_train before: {y_train}")
-y_train = to_categorical(y_train, num_classes)
-print(f"y_train after: {y_train}")
-y_test = to_categorical(y_test, num_classes)
+def pad(df, max_len):
+    arr = df[['accel_x','accel_y','accel_z','gyro_x','gyro_y','gyro_z']].values
+    if len(arr) >= max_len:
+        return arr[:max_len]
+    else:
+        pad = np.zeros((max_len - len(arr), 6))
+        return np.vstack((arr, pad))
 
-print(f"y_train.shape(): {y_train.shape}")
-print(f"y_test.shape(): {y_test.shape}")
 
-print(f"num_classes: {num_classes}")
+X_train = np.array([pad(df, max_len) for df in X_train])
+X_test = np.array([pad(df, max_len) for df in X_test])
 
 num_classes = 5
+y_train = to_categorical(y_train, num_classes)
+y_test = to_categorical(y_test, num_classes)
 
-# model = Sequential([
-#     Input(shape=(X_train.shape[1], X_train.shape[2])),
-#     LSTM(64, return_sequences=True),
-#     Dropout(0.3),
-#     LSTM(64),
-#     Dense(64, activation='relu'),
-#     Dense(num_classes, activation='softmax')
-# ])
+print(f"X_train shape: {X_train.shape}")
+print(f"y_train shape: {y_train.shape}")
 
 model = Sequential([
     Input(shape=(X_train.shape[1], X_train.shape[2])),
-    Conv1D(64, 3, activation='relu', padding='same'),
-    Dropout(0.2),
-    Conv1D(128, 3, activation='relu', padding='same'),
-    GlobalAveragePooling1D(),
+    LSTM(128, return_sequences=True),
+    Dropout(0.3),
+    LSTM(64),
     Dense(64, activation='relu'),
     Dense(num_classes, activation='softmax')
 ])
+
 
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 model.summary()
@@ -188,8 +169,8 @@ model.summary()
 history = model.fit(
     X_train, y_train,
     validation_data=(X_test, y_test),
-    epochs=50,
-    batch_size=16,
+    epochs=30,
+    batch_size=4,
     verbose=1
 )
 
@@ -199,7 +180,3 @@ y_true = np.argmax(y_test, axis=1)
 print("Accuracy:", accuracy_score(y_true, y_pred))
 print("Classification Report:\n", classification_report(y_true, y_pred))
 
-# plt.plot(history.history['accuracy'], label='train acc')
-# plt.plot(history.history['val_accuracy'], label='val acc')
-# plt.legend()
-# plt.show()
