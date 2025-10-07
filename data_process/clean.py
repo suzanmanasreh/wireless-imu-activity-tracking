@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sys
+import tensorflow as tf
+
+
 
 def add_data(hmap, data, ts):
     if ts not in hmap:
@@ -9,11 +12,16 @@ def add_data(hmap, data, ts):
     elif data != hmap[ts]:
         print(f"WHY {ts} is already in: {hmap}")
 
-training_files = ["../data/bicep_curl/suzan_bicep_set1.log", "../data/bicep_curl/jake_bicep_set1.log", "../data/bicep_curl/udai_bicep_set1.log", "../data/shoulder_press/suzan_shoulder_set1.log", "../data/shoulder_press/jake_shoulder_set1.log", "../data/shoulder_press/udai_shoulder_set1.log", "../data/row/suzan_row_set1.log", "../data/row/jake_row_set1.log", "../data/row/udai_row_set1.log", "../data/rdl/suzan_rdl_set1.log", "../data/rdl/jake_rdl_set1.log", "../data/rdl/udai_rdl_set1.log", "../data/squat/suzan_squat_set1.log", "../data/squat/jake_squat_set1.log", "../data/squat/udai_squat_set1.log"]
-label = ["bicep_curl", "bicep_curl", "bicep_curl", "shoulder_press", "shoulder_press", "shoulder_press", "row", "row", "row", "rdl", "rdl", "rdl", "squat", "squat", "squat"]
-dfs = []
+training_files = ["../data/bicep_curl/suzan_bicep_set1.log", "../data/bicep_curl/jake_bicep_set1.log", "../data/bicep_curl/udai_bicep_set1.log", "../data/shoulder_press/suzan_shoulder_set1.log", "../data/shoulder_press/jake_shoulder_set1.log", "../data/shoulder_press/udai_shoulder_set1.log", "../data/row/suzan_row_set1.log", "../data/row/jake_row_set1.log", "../data/row/udai_row_set1.log", "../data/rdl/suzan_rdl_set1.log", "../data/rdl/jake_rdl_set1.log", "../data/rdl/jessica_rdl_set1.log", "../data/squat/suzan_squat_set1.log", "../data/squat/jake_squat_set1.log", "../data/squat/udai_squat_set1.log"]
+test_files = ["../data/bicep_curl/suzan_bicep_set2.log", "../data/bicep_curl/jake_bicep_set2.log", "../data/bicep_curl/udai_bicep_set2.log", "../data/shoulder_press/suzan_shoulder_set2.log", "../data/shoulder_press/jake_shoulder_set2.log", "../data/shoulder_press/udai_shoulder_set2.log", "../data/row/suzan_row_set2.log", "../data/row/jake_row_set2.log", "../data/row/udai_row_set2.log", "../data/rdl/suzan_rdl_set2.log", "../data/rdl/jake_rdl_set2.log", "../data/rdl/jessica_rdl_set2.log", "../data/squat/suzan_squat_set2.log", "../data/squat/jake_squat_set2.log", "../data/squat/udai_squat_set2.log"]
+labels = ["bicep_curl", "bicep_curl", "bicep_curl", "shoulder_press", "shoulder_press", "shoulder_press", "row", "row", "row", "rdl", "rdl", "rdl", "squat", "squat", "squat"]
+y_train = np.asarray(labels, dtype="object")
+y_train = pd.DataFrame(y_train)
+X_train = []
+X_test = []
 
-for filename in training_files:
+def create_df(filename, dfs):
+    print(filename)
     with open(filename, 'r') as file:
         timestamps = []
         accel_x = {}
@@ -88,7 +96,7 @@ for filename in training_files:
         # df.to_csv('raw_df.csv')
         cleaned_df = df.interpolate(method="linear")
         name = "../csvs/" + filename.split("/")[-1].split(".")[0] + "_df.csv"
-        if sys.argv[1] == "write":
+        if len(sys.argv) > 1 and sys.argv[1] == "write":
             cleaned_df.to_csv(name, index=False)
         print(cleaned_df.head())
         dfs.append(cleaned_df)
@@ -97,3 +105,13 @@ for filename in training_files:
         # plt.xlabel("Timestamp")
         # plt.ylabel("IMU Data")
         # plt.show()
+
+
+
+
+for filename in training_files:
+    create_df(filename, X_train)
+
+for filename in test_files:
+    create_df(filename, X_test)
+
