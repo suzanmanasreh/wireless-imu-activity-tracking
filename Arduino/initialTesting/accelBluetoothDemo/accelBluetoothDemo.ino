@@ -5,7 +5,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #define NEOPIXELPIN 8
-#define NODENUMBER 2
+#define NODENUMBER 1
 
 BLEUart bleuart;
 Adafruit_LSM6DS33 lsm6ds33;
@@ -37,11 +37,17 @@ void setup() {
     while (1) { delay(10); }
   }
 
-  // Set IMU to detect acclerometer changes up to +/- 8G's
-  lsm6ds33.setAccelRange(LSM6DS_ACCEL_RANGE_8_G);
+  // Set IMU to detect acclerometer changes up to +/- 4G's
+  lsm6ds33.setAccelRange(LSM6DS_ACCEL_RANGE_4_G);
 
-  // How quickly we update the accelerometer. 50ish is fine for us.
-  lsm6ds33.setAccelDataRate(LSM6DS_RATE_52_HZ);
+  // How quickly we fetch readings. These should be a decent enough balance.
+  lsm6ds33.setAccelDataRate(LSM6DS_RATE_104_HZ);
+  lis3mdl.setDataRate(LIS3MDL_DATARATE_80_HZ);
+
+  // If only I knew about this earlier on...
+  // Seems to set the connection interval
+  // NOTE: UPDATE MTU WITH NRF CONNECT APP AS NEEDED!
+  Bluefruit.configPrphBandwidth(BANDWIDTH_MAX);
 
   // Initialize BLE
   Bluefruit.begin(1, 0);
@@ -83,19 +89,17 @@ void loop() {
   };
 
   // Declare our buffer
-  char buf[20];
+  char buf[128];
 
   // Send via BLE UART
-  // NOTE: REDUCED MEASUREMENT ACCURACY BEYOND 1M MILLISECS ELAPSED
   if (Bluefruit.connected() && bleuart.notifyEnabled()) {
-    for (int i = 0; i < 9; i++) {
-      snprintf(buf, 20, "%d,%s,%d,%.3f",
-        NODENUMBER,
-        types[i],
-        time,
-        values[i]
-      );
-      bleuart.print(buf);
-    }
+    snprintf(buf, 128, "%d,%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
+      NODENUMBER,
+      time,
+      accel.acceleration.x, accel.acceleration.y, accel.acceleration.z,
+      gyro.gyro.x, gyro.gyro.y, gyro.gyro.z,
+      mag.magnetic.x, mag.magnetic.y, mag.magnetic.z
+    );
+    bleuart.print(buf);
   }
 }
