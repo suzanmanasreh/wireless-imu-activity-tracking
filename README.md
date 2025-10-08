@@ -8,11 +8,16 @@ Our data is currently collected with the IMU attached to the center of the barbe
 
 
 ### Questions:
-- What are the units on our timestamps? I want to calculate time between each stamp
 - Do we need to apply a Kalman Filter on the data?
+- Should we segment our data like papers?
+- Should we cross-validate? If so, how many sets should people do, and how do we split across test/train/validate
 
 ## Initial Data Analysis
 
 ### Bicep Curl
 
 ![alt text](image.png)
+
+### Confusion Matrix
+
+![alt text](image-1.png)
