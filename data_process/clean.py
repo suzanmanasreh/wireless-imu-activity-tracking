@@ -5,6 +5,8 @@ import tensorflow as tf
 from tensorflow.keras import Sequential, Input
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D, Flatten, GlobalAveragePooling1D
 from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.models import load_model
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
@@ -152,17 +154,26 @@ model = Sequential([
     Dense(num_classes, activation='softmax')
 ])
 
-
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 model.summary()
 
-history = model.fit(
+checkpoint_filepath = '/tmp/ckpt/checkpoint.model.keras'
+model_checkpoint_callback = ModelCheckpoint(
+    filepath=checkpoint_filepath,
+    monitor='val_accuracy',
+    mode='max',
+    save_best_only=True)
+
+model.fit(
     X_train, y_train,
     validation_data=(X_test, y_test),
     epochs=30,
     batch_size=4,
-    verbose=1
+    verbose=1,
+    callbacks=[model_checkpoint_callback]
 )
+
+model.load_weights(checkpoint_filepath)
 
 y_pred = np.argmax(model.predict(X_test), axis=1)
 y_true = np.argmax(y_test, axis=1)
