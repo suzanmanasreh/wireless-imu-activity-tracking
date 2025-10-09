@@ -3,15 +3,19 @@ from bleak import BleakClient, BleakScanner
 import bleak
 
 UART_RX_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E" # RX characteristic UUID - shouldn't need to change?
+FILENAME_BASE="shoulder_jake_set2_reps10_actual"
 
 def handle_rx(sender, data):
     try:
         text = data.decode()
         text = text.strip()
+        number, time, ax, ay, az, gx, gy, gz, mx, my, mz = text.split(',')
     except Exception:
         print(f"text:  {text} could not be decoded")
     try:
-        print(text)
+        with open(FILENAME_BASE + f"{number}" + ".log", "a") as f:
+            f.write(text + "\n")
+        #print(text)
     except Exception:
         print("FAIL: ", text)
         pass
