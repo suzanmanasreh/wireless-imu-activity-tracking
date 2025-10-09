@@ -5,7 +5,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #define NEOPIXELPIN 8
-#define NODENUMBER 1
+#define NODENUMBER 2
 
 BLEUart bleuart;
 Adafruit_LSM6DS33 lsm6ds33;
@@ -17,13 +17,13 @@ void setup() {
   Serial.begin(115200);
 
   // Set up the fancy LED color to tell nodes apart visually
-  if (NODENUMBER == 1) {
-    strip.setPixelColor(0, 0, 255, 255); // Cyan
-  } else {
-    strip.setPixelColor(0, 255, 255, 0); // Orange/Yellow?
-  }
+  //if (NODENUMBER == 1) {
+  //  strip.setPixelColor(0, 0, 255, 255); // Cyan
+  //} else {
+  //  strip.setPixelColor(0, 255, 255, 0); // Orange/Yellow?
+  //}
   strip.setBrightness(10);
-  strip.show();
+  //strip.show();
 
   // Initialize IMU to get Accel/Gyro readings
   if (!lsm6ds33.begin_I2C()) {
@@ -93,6 +93,8 @@ void loop() {
 
   // Send via BLE UART
   if (Bluefruit.connected() && bleuart.notifyEnabled()) {
+    strip.setPixelColor(0, 0, 255, 0);
+    strip.show();
     snprintf(buf, 128, "%d,%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
       NODENUMBER,
       time,
@@ -101,5 +103,12 @@ void loop() {
       mag.magnetic.x, mag.magnetic.y, mag.magnetic.z
     );
     bleuart.print(buf);
-  }
+  } else {
+    if (NODENUMBER == 1) {
+      strip.setPixelColor(0, 0, 255, 255); // Cyan
+    } else {
+      strip.setPixelColor(0, 255, 255, 0); // Orange/Yellow?
+    }
+    strip.show();
+    }
 }
