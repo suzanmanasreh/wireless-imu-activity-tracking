@@ -13,7 +13,7 @@ def handle_rx(sender, data):
     except Exception:
         print(f"text:  {text} could not be decoded")
     try:
-        with open(FILENAME_BASE + f"{number}" + ".log", "a") as f:
+        with open(FILENAME_BASE + f"{number}" + ".csv", "a") as f:
             f.write(text + "\n")
         #print(text)
     except Exception:
